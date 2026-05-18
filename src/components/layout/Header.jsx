@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Search, ShoppingCart, Heart, User, ChevronDown, Menu, X, Bell } from "lucide-react";
 import { useCart } from "@/lib/cartContext";
-import { getCategories } from "@/lib/api";
+import { getCategories, getSearchSuggestions } from "@/lib/api";
 
 export default function Header() {
   const { totalItems } = useCart();
@@ -11,8 +11,14 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [isSearching, setIsSearching] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
+  const bottomCategories = categories.slice(0, 4);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 60);
@@ -29,10 +35,76 @@ export default function Header() {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setCategoriesOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSuggestionsOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    const value = searchQuery.trim();
+    if (value.length < 2) {
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const data = await getSearchSuggestions(value);
+        if (!cancelled) {
+          setSuggestions(data || []);
+          setSuggestionsOpen(true);
+          setActiveSuggestion(data?.length ? 0 : -1);
+        }
+      } finally {
+        if (!cancelled) setIsSearching(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
+  const goToSuggestion = (suggestion) => {
+    if (!suggestion) return;
+    window.location.href = suggestion.href || `/search?q=${encodeURIComponent(suggestion.title)}&exact=1`;
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const selected = suggestionsOpen && activeSuggestion >= 0 ? suggestions[activeSuggestion] : null;
+    if (selected) {
+      goToSuggestion(selected);
+      return;
+    }
+    if (searchQuery.trim()) {
+      window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
+    }
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (!suggestionsOpen || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveSuggestion((index) => (index + 1) % suggestions.length);
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveSuggestion((index) => (index <= 0 ? suggestions.length - 1 : index - 1));
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      goToSuggestion(suggestions[activeSuggestion >= 0 ? activeSuggestion : 0]);
+    }
+    if (e.key === "Escape") {
+      setSuggestionsOpen(false);
+    }
+  };
 
   return (
     <>
@@ -68,9 +140,9 @@ export default function Header() {
                 <ChevronDown size={14} className={`transition-transform ${categoriesOpen ? "rotate-180" : ""}`} />
               </button>
 
-              {categoriesOpen && (
-                <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
-                  {categories.map((cat) => (
+            {categoriesOpen && (
+              <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+                  {categories.length ? categories.map((cat) => (
                     <Link
                       key={cat.id}
                       href={`/category/${cat.slug}`}
@@ -80,23 +152,35 @@ export default function Header() {
                       <span className="text-lg">{cat.icon}</span>
                       {cat.name}
                     </Link>
-                  ))}
+                  )) : (
+                    <div className="px-4 py-3 text-sm text-gray-500">No categories found</div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Search */}
             <form
+              ref={searchRef}
               className="flex-1 flex items-center relative"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (searchQuery.trim()) window.location.href = `/search?q=${searchQuery}`;
-              }}
+              onSubmit={handleSearchSubmit}
             >
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchQuery(value);
+                  if (value.trim().length < 2) {
+                    setSuggestions([]);
+                    setSuggestionsOpen(false);
+                    setActiveSuggestion(-1);
+                  } else {
+                    setSuggestionsOpen(true);
+                  }
+                }}
+                onFocus={() => searchQuery.trim().length >= 2 && setSuggestionsOpen(true)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Search Your Product..."
                 className="w-full border-2 border-gray-200 focus:border-purple-500 rounded-xl py-2.5 pl-4 pr-14 text-sm outline-none transition-colors"
               />
@@ -106,6 +190,40 @@ export default function Header() {
               >
                 <Search size={18} />
               </button>
+
+              {suggestionsOpen && searchQuery.trim().length >= 2 && (
+                <div className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl z-50">
+                  {isSearching ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">Searching...</div>
+                  ) : suggestions.length ? (
+                    suggestions.map((item, index) => (
+                      <button
+                        key={`${item.type}-${item.id}-${index}`}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => goToSuggestion(item)}
+                        className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${
+                          index === activeSuggestion ? "bg-purple-50 text-purple-700" : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {item.image ? (
+                          <img src={item.image} alt="" className="h-9 w-9 rounded-lg object-cover" />
+                        ) : (
+                          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-700">
+                            <Search size={15} />
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold">{item.title}</span>
+                          <span className="text-xs capitalize text-gray-400">{item.type || "suggestion"}</span>
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-gray-500">No suggestions found</div>
+                  )}
+                </div>
+              )}
             </form>
 
             {/* Right Icons */}
@@ -178,10 +296,20 @@ export default function Header() {
       <nav className="bg-purple-700 text-white hidden md:block sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center gap-6 h-10 text-sm font-medium overflow-x-auto">
-            <Link href="/blog" className="hover:text-orange-300 transition-colors whitespace-nowrap">Blog</Link>
-            <Link href="/become-seller" className="hover:text-orange-300 transition-colors whitespace-nowrap">Be a Seller</Link>
-            <Link href="/become-customer" className="hover:text-orange-300 transition-colors whitespace-nowrap">Be a Customer</Link>
-            <Link href="/customer-care" className="hover:text-orange-300 transition-colors whitespace-nowrap">Customer Care</Link>
+            {bottomCategories.length ? bottomCategories.map((cat) => (
+              <Link
+                key={cat.id}
+                href={`/category/${cat.slug}`}
+                className="hover:text-orange-300 transition-colors whitespace-nowrap"
+              >
+                {cat.name}
+              </Link>
+            )) : (
+              <>
+                <Link href="/products" className="hover:text-orange-300 transition-colors whitespace-nowrap">Products</Link>
+                <Link href="/offers" className="hover:text-orange-300 transition-colors whitespace-nowrap">Offers</Link>
+              </>
+            )}
 
             <div className="flex-1" />
 
@@ -211,7 +339,7 @@ export default function Header() {
             </div>
             <div className="p-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Categories</p>
-              {categories.map((cat) => (
+              {categories.length ? categories.map((cat) => (
                 <Link
                   key={cat.id}
                   href={`/category/${cat.slug}`}
@@ -221,7 +349,9 @@ export default function Header() {
                   <span className="text-xl">{cat.icon}</span>
                   {cat.name}
                 </Link>
-              ))}
+              )) : (
+                <p className="py-2.5 text-sm text-gray-500">No categories found</p>
+              )}
             </div>
           </div>
         </div>

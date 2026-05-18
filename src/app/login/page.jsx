@@ -24,7 +24,13 @@ export default function LoginPage() {
 
     try {
       const data = await loginUser(form);
-      localStorage.setItem("skb_user", JSON.stringify(data.user));
+      if (!data.token) {
+        throw new Error(data.message || "Login token was not returned by the API.");
+      }
+      if (data.user) {
+        localStorage.setItem("skb_user", JSON.stringify(data.user));
+        localStorage.setItem("auth_user", JSON.stringify(data.user));
+      }
       localStorage.setItem("skb_token", data.token);
       setSuccess("Login successful. Redirecting...");
       window.location.href = "/";

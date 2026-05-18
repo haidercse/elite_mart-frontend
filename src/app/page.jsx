@@ -7,14 +7,25 @@ import TraditionalSection from "@/components/home/TraditionalSection";
 import AdBanners from "@/components/home/AdBanners";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import BrandsSection from "@/components/home/BrandsSection";
-import { getCategories, getProducts, getOfferBanners, getFlashSaleProducts } from "@/lib/api";
+import {
+  getBrands,
+  getCategories,
+  getFeaturedProducts,
+  getFlashSaleProducts,
+  getOfferBanners,
+  getSliders,
+  getTopNavLinks,
+} from "@/lib/api";
 
 export default async function HomePage() {
-  const [categories, featuredProducts, offerBanners, flashSaleProducts] = await Promise.all([
+  const [categories, featuredProducts, offerBanners, flashSaleProducts, sliders, brands, topNavLinks] = await Promise.all([
     getCategories(),
-    getProducts(),
+    getFeaturedProducts(),
     getOfferBanners(),
     getFlashSaleProducts(),
+    getSliders(),
+    getBrands(),
+    getTopNavLinks(),
   ]);
 
   return (
@@ -43,12 +54,12 @@ export default async function HomePage() {
 
         {/* Hero Slider */}
         <div>
-          <HeroSlider />
+          <HeroSlider slides={sliders} />
         </div>
       </div>
 
       {/* Top Module Links */}
-      <TopModules />
+      <TopModules links={topNavLinks} />
 
       {/* Offer Banners */}
       <OfferBanners banners={offerBanners} />
@@ -69,7 +80,7 @@ export default async function HomePage() {
       <FeaturedProducts products={featuredProducts} />
 
       {/* Brands */}
-      <BrandsSection />
+      <BrandsSection brands={brands} />
     </div>
   );
 }

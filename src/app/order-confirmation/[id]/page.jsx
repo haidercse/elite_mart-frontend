@@ -1,3 +1,7 @@
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { CheckCircle, Clock, Download, MapPin, Package, Truck } from "lucide-react";
 import { getOrderDetails } from "@/lib/api";
 
 export default function OrderConfirmationPage({ params }) {

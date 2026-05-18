@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { PhoneCall, Mail, Globe, ChevronDown, Package } from "lucide-react";
 
 export default function TopBar() {
@@ -30,10 +31,10 @@ export default function TopBar() {
 
         {/* Right */}
         <div className="flex items-center gap-4">
-          <a href="/track-order" className="flex items-center gap-1 hover:text-white transition-colors">
+          <Link href="/track-order" className="flex items-center gap-1 hover:text-white transition-colors">
             <Package size={12} />
             Track My Order
-          </a>
+          </Link>
           <div className="flex items-center gap-2">
             <span className="text-gray-500">Follow us:</span>
             {["f", "in", "tw", "yt"].map((s) => (

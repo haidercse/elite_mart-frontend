@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 
 const catColors = [
   "bg-purple-50 hover:bg-purple-100 text-purple-700",

@@ -40,6 +40,7 @@ export default function AccountPage() {
       console.error("Logout error:", error);
     }
     localStorage.removeItem("skb_user");
+    localStorage.removeItem("auth_user");
     localStorage.removeItem("skb_token");
     window.location.href = "/";
   };

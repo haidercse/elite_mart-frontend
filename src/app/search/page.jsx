@@ -1,9 +1,18 @@
+import Link from "next/link";
 import ProductCard from "@/components/ui/ProductCard";
-import { searchProducts } from "@/lib/api";
+import { getCategories, searchProducts } from "@/lib/api";
 
 export default async function SearchPage({ searchParams }) {
-  const query = typeof searchParams?.q === "string" ? searchParams.q : "";
-  const results = query ? await searchProducts(query) : [];
+  const params = await searchParams;
+  const query = typeof params?.q === "string" ? params.q : "";
+  const exact = params?.exact === "1";
+  const [results, categories] = await Promise.all([
+    query ? searchProducts(query) : [],
+    getCategories(),
+  ]);
+  const visibleResults = exact
+    ? results.filter((product) => product.name?.toLowerCase() === query.toLowerCase())
+    : results;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
@@ -32,17 +41,31 @@ export default async function SearchPage({ searchParams }) {
         </div>
       </div>
 
+      {categories.length > 0 && (
+        <div className="mb-8 flex gap-2 overflow-x-auto pb-1">
+          {categories.slice(0, 12).map((category) => (
+            <Link
+              key={category.id}
+              href={`/category/${category.slug}`}
+              className="whitespace-nowrap rounded-2xl border border-purple-100 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-100"
+            >
+              {category.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {!query ? (
         <div className="rounded-3xl border border-gray-100 bg-white p-10 text-center text-gray-500 shadow-sm">
           Search any product name or category to see matching results.
         </div>
-      ) : results.length === 0 ? (
+      ) : visibleResults.length === 0 ? (
         <div className="rounded-3xl border border-gray-100 bg-white p-10 text-center text-gray-500 shadow-sm">
           No products found matching “{query}”. Try another keyword.
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {results.map((product) => (
+          {visibleResults.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

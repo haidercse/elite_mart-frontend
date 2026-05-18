@@ -5,7 +5,7 @@ import Link from "next/link";
 import { signupUser } from "@/lib/api";
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -24,10 +24,23 @@ export default function RegisterPage() {
 
     try {
       const data = await signupUser(form);
-      localStorage.setItem("skb_user", JSON.stringify(data.user));
-      localStorage.setItem("skb_token", data.token);
-      setSuccess("Registration successful. Redirecting...");
-      window.location.href = "/";
+      
+      // Check if signup was successful
+      if (!data.result && !data.success) {
+        throw new Error(data.message || "Registration failed.");
+      }
+
+      // Store user_id for verification
+      if (data.user_id) {
+        localStorage.setItem("pending_user_id", data.user_id);
+        localStorage.setItem("pending_verify_by", form.phone ? "phone" : "email");
+      }
+
+      setSuccess("Registration successful. Please verify your account.");
+      // Redirect to verification page
+      setTimeout(() => {
+        window.location.href = `/verify?user_id=${data.user_id}&verify_by=${form.phone ? "phone" : "email"}`;
+      }, 1000);
     } catch (err) {
       setError(err.message || "Registration failed.");
     } finally {
@@ -63,6 +76,19 @@ export default function RegisterPage() {
                 value={form.email}
                 onChange={handleChange}
                 required
+                className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 focus:border-purple-500 focus:ring-purple-500 outline-none"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-gray-700">Phone</span>
+              <input
+                type="tel"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                required
+                placeholder="01XXXXXXXXX"
                 className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 focus:border-purple-500 focus:ring-purple-500 outline-none"
               />
             </label>

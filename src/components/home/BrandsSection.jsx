@@ -1,22 +1,13 @@
 "use client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
+import { brands as fallbackBrands } from "@/data/mockData";
 
-const brandData = [
-  { id: 1, name: "SOLOVE", color: "#1e40af" },
-  { id: 2, name: "amazfit", color: "#7c3aed" },
-  { id: 3, name: "Apple", color: "#1f2937" },
-  { id: 4, name: "G·TIDE", color: "#0f766e" },
-  { id: 5, name: "HAYLOU", color: "#c2410c" },
-  { id: 6, name: "imilab", color: "#15803d" },
-  { id: 7, name: "KIESLECT", color: "#9f1239" },
-  { id: 8, name: "Xiaomi", color: "#dc2626" },
-  { id: 9, name: "Samsung", color: "#1d4ed8" },
-  { id: 10, name: "Realme", color: "#ea580c" },
-];
+const colors = ["#1e40af", "#7c3aed", "#1f2937", "#0f766e", "#c2410c", "#15803d", "#9f1239", "#dc2626"];
 
-export default function BrandsSection() {
+export default function BrandsSection({ brands = fallbackBrands }) {
   const scrollRef = useRef(null);
+  const items = brands.length ? brands : fallbackBrands;
 
   const scroll = (dir) => {
     if (scrollRef.current) {
@@ -46,22 +37,21 @@ export default function BrandsSection() {
         </div>
       </div>
 
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
-      >
-        {brandData.map((brand) => (
-          <button
-            key={brand.id}
+      <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        {items.map((brand, index) => (
+          <a
+            key={brand.id || brand.slug || brand.name}
+            href={brand.slug ? `/products?brand=${brand.slug}` : "/products"}
             className="flex-shrink-0 bg-white border-2 border-gray-100 hover:border-purple-300 hover:shadow-md rounded-2xl px-6 py-4 transition-all duration-200 hover:scale-105 min-w-[100px] flex items-center justify-center"
           >
-            <span
-              className="font-black text-sm tracking-tight"
-              style={{ color: brand.color }}
-            >
-              {brand.name}
-            </span>
-          </button>
+            {brand.logo ? (
+              <img src={brand.logo} alt={brand.name} className="h-8 max-w-[92px] object-contain" />
+            ) : (
+              <span className="font-black text-sm tracking-tight" style={{ color: colors[index % colors.length] }}>
+                {brand.name}
+              </span>
+            )}
+          </a>
         ))}
       </div>
     </section>

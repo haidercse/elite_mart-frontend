@@ -2,36 +2,40 @@
 import { useCart } from "@/lib/cartContext";
 import { placeOrder } from "@/lib/api";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { ArrowLeft, Truck, Lock, Package, MapPin, Phone, Mail, CreditCard, DollarSign } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Truck, Lock } from "lucide-react";
 
-export default function CheckoutPage() {
-  const { items, totalPrice, dispatch } = useCart();
-  const [loading, setLoading] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("COD");
-  const [userInfo, setUserInfo] = useState({
+function getSavedUserInfo() {
+  const emptyUser = {
     fullName: "",
     email: "",
     phone: "",
     address: "",
     city: "",
     zipcode: "",
-  });
-  const [errors, setErrors] = useState({});
+  };
 
-  useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("auth_user"));
-      if (user?.email) {
-        setUserInfo((prev) => ({
-          ...prev,
-          fullName: user.name || "",
-          email: user.email || "",
-        }));
-      }
-    } catch {}
-  }, []);
+  if (typeof window === "undefined") return emptyUser;
+
+  try {
+    const user = JSON.parse(localStorage.getItem("auth_user"));
+    return {
+      ...emptyUser,
+      fullName: user?.name || "",
+      email: user?.email || "",
+    };
+  } catch {
+    return emptyUser;
+  }
+}
+
+export default function CheckoutPage() {
+  const { items, totalPrice, dispatch } = useCart();
+  const [loading, setLoading] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [userInfo, setUserInfo] = useState(getSavedUserInfo);
+  const [errors, setErrors] = useState({});
 
   const deliveryFee = totalPrice > 2000 ? 0 : 80;
   const finalTotal = totalPrice + deliveryFee;

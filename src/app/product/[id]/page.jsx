@@ -3,10 +3,22 @@ import { getProductById, getProducts } from "@/lib/api";
 import ProductCard from "@/components/ui/ProductCard";
 import AddToCartButton from "./AddToCartButton";
 
+function formatMoney(value) {
+  return `৳${Number(value || 0).toLocaleString()}`;
+}
+
+function categoryHref(product) {
+  const slug = product.categorySlug || product.category?.slug || product.category?.toLowerCase?.()
+    ?.replace(/ & /g, "-")
+    ?.replace(/ /g, "-");
+  return slug ? `/category/${slug}` : "/category";
+}
+
 export default async function ProductDetailsPage({ params }) {
   const { id } = await params;
   const product = await getProductById(id);
   const allProducts = await getProducts();
+
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-20">
@@ -21,16 +33,23 @@ export default async function ProductDetailsPage({ params }) {
     );
   }
 
-  const relatedProducts = allProducts.filter(
-    (item) => item.category === product.category && item.id !== product.id
-  ).slice(0, 3);
+  const relatedProducts = allProducts.filter((item) => {
+    const sameCategory = product.categoryId
+      ? item.categoryId === product.categoryId
+      : item.category === product.category;
+    return sameCategory && item.id !== product.id;
+  }).slice(0, 3);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-3xl overflow-hidden border border-gray-100 shadow-sm bg-white">
           <div className="h-[420px] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-            <span className="text-[6rem]">🛒</span>
+            {product.image ? (
+              <img src={product.image} alt={product.name} className="h-full w-full object-contain" />
+            ) : (
+              <span className="text-[6rem]">Cart</span>
+            )}
           </div>
           <div className="p-8">
             <div className="flex flex-wrap gap-3 items-center mb-5">
@@ -45,43 +64,43 @@ export default async function ProductDetailsPage({ params }) {
                 </span>
               )}
             </div>
+
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.3em] text-purple-600 font-semibold">{product.category}</p>
+                <p className="text-sm uppercase tracking-[0.3em] text-purple-600 font-semibold">
+                  {product.category || "Product"}
+                </p>
                 <h1 className="text-4xl font-black text-gray-900 mt-3">{product.name}</h1>
               </div>
-              <Link href={`/category/${product.category.toLowerCase().replace(/ & /g, "-").replace(/ /g, "-")}`} className="rounded-2xl bg-purple-50 px-4 py-2 text-purple-700 text-sm font-semibold hover:bg-purple-100 transition-colors">
+              <Link href={categoryHref(product)} className="rounded-2xl bg-purple-50 px-4 py-2 text-purple-700 text-sm font-semibold hover:bg-purple-100 transition-colors">
                 View category
               </Link>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-4 items-end">
               <div>
-                <p className="text-5xl font-black text-purple-700">৳{product.price.toLocaleString()}</p>
-                <p className="text-sm text-gray-400 line-through">৳{product.originalPrice.toLocaleString()}</p>
+                <p className="text-5xl font-black text-purple-700">{formatMoney(product.price)}</p>
+                {product.originalPrice > product.price && (
+                  <p className="text-sm text-gray-400 line-through">{formatMoney(product.originalPrice)}</p>
+                )}
               </div>
-              <div className="text-sm text-gray-500">{product.discount}% off</div>
+              {!!product.discount && <div className="text-sm text-gray-500">{product.discount}% off</div>}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 mb-8 mt-8">
               <div className="rounded-3xl bg-gray-50 p-5">
                 <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-2">Rating</p>
-                <p className="text-3xl font-semibold text-orange-500">{product.rating} ★</p>
+                <p className="text-3xl font-semibold text-orange-500">{product.rating} star</p>
                 <p className="text-sm text-gray-500">{product.reviews} reviews</p>
               </div>
               <div className="rounded-3xl bg-gray-50 p-5">
                 <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-2">Vendor</p>
-                <p className="text-lg font-semibold text-gray-900">{product.vendor}</p>
+                <p className="text-lg font-semibold text-gray-900">{product.vendor || "Sobkisu Bazar"}</p>
               </div>
             </div>
 
             <div className="space-y-4 text-gray-600">
-              <p>
-                এই পণ্যের জন্য আমরা উচ্চমানের সার্ভিস নিশ্চিত করি। আপনার অর্ডার দ্রুত প্রক্রিয়াকরণ হবে এবং নিরাপদ ডেলিভারি নিশ্চিত করা হবে।
-              </p>
-              <p>
-                নকশা, পারফরম্যান্স, এবং মূল্য—সবকিছুই বিশেষভাবে মনোযোগ দিয়ে তৈরি। এখনই অর্ডার করুন এবং আপনার পছন্দের পণ্যটি ঘরে নিয়ে আসুন।
-              </p>
+              <p>{product.description || "This product is available from Sobkisu Bazar with fast processing and reliable delivery."}</p>
             </div>
           </div>
         </div>
@@ -100,7 +119,7 @@ export default async function ProductDetailsPage({ params }) {
                 <p className="text-sm text-gray-500">Fast delivery in 1-3 business days</p>
               </div>
             </div>
-            
+
             <div className="mt-6">
               <AddToCartButton product={product} />
             </div>
@@ -113,9 +132,9 @@ export default async function ProductDetailsPage({ params }) {
           <div className="rounded-3xl border border-gray-100 overflow-hidden shadow-sm bg-white p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Product details</h2>
             <ul className="space-y-3 text-sm text-gray-600">
-              <li><strong className="text-gray-900">Category:</strong> {product.category}</li>
-              <li><strong className="text-gray-900">Vendor:</strong> {product.vendor}</li>
-              <li><strong className="text-gray-900">Stock status:</strong> In stock</li>
+              <li><strong className="text-gray-900">Category:</strong> {product.category || "General"}</li>
+              <li><strong className="text-gray-900">Vendor:</strong> {product.vendor || "Sobkisu Bazar"}</li>
+              <li><strong className="text-gray-900">Stock status:</strong> {product.stock === 0 ? "Out of stock" : "In stock"}</li>
               <li><strong className="text-gray-900">Delivery:</strong> 1-3 business days</li>
               <li><strong className="text-gray-900">Return policy:</strong> 7-day easy return</li>
             </ul>

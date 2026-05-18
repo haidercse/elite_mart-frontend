@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Heart, ShoppingCart, Star, Zap } from "lucide-react";
+import { Heart, ShoppingCart, Star } from "lucide-react";
 import { useCart } from "@/lib/cartContext";
 import { useState } from "react";
 
@@ -48,7 +48,11 @@ export default function ProductCard({ product }) {
         {/* Image */}
         <div className="relative overflow-hidden" style={{ paddingTop: "75%" }}>
           <div className="absolute inset-0">
-            <ProductPlaceholder category={product.category} />
+            {product.image ? (
+              <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+            ) : (
+              <ProductPlaceholder category={product.category} />
+            )}
           </div>
 
           {/* Badges */}
