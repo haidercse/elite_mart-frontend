@@ -12,6 +12,12 @@ const nextConfig = {
       },
     ],
   },
+  // Performance optimizations
+  compress: true,
+  productionBrowserSourceMaps: false,
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
 };
 
 module.exports = nextConfig;

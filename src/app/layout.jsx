@@ -17,6 +17,10 @@ export const metadata = {
   description: "Shop from thousands of verified sellers across Bangladesh. Fashion, Electronics, Food, and more.",
 };
 
+// Default fetch caching strategy for data reuse
+export const fetchCache = "force-cache";
+export const revalidate = 3600;
+
 export default function RootLayout({ children }) {
   return (
     <html lang="bn" className={`${inter.variable} ${notoSansBengali.variable}`}>

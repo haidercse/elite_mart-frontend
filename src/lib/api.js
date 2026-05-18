@@ -399,6 +399,20 @@ export async function getProductById(id) {
   }
 }
 
+export async function getProductBySlug(slug) {
+  if (!slug) return null;
+  if (USE_MOCK) {
+    await delay(250);
+    return featuredProducts.find((product) => product.slug === slug) || null;
+  }
+  try {
+    return fetchJson(`/products/slug/${slug}`);
+  } catch (error) {
+    console.error(`Failed to fetch product by slug ${slug}:`, error);
+    return featuredProducts.find((product) => product.slug === slug) || null;
+  }
+}
+
 export async function getProductsByCategoryId(categoryId) {
   if (USE_MOCK) {
     await delay(250);

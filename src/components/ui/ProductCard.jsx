@@ -43,7 +43,7 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <Link href={`/product/${product.id}`} className="group block">
+    <Link href={`/product/${product.slug || product.id}`} className="group block">
       <div className="bg-white rounded-2xl border border-gray-100 hover:border-purple-200 hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col">
         {/* Image */}
         <div className="relative overflow-hidden" style={{ paddingTop: "75%" }}>
