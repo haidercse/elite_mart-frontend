@@ -15,9 +15,8 @@ const nextConfig = {
   // Performance optimizations
   compress: true,
   productionBrowserSourceMaps: false,
-  experimental: {
-    optimizePackageImports: ["lucide-react"],
-  },
+  // Disable experimental features that can cause dev server instability
+  experimental: {},
 };
 
 module.exports = nextConfig;
