@@ -3,7 +3,7 @@ import { useCart } from "@/lib/cartContext";
 import { ShoppingBag } from "lucide-react";
 import { useState } from "react";
 
-export default function AddToCartButton({ product }) {
+export default function AddToCartButton({ product, selectedVariant }) {
   const { dispatch } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -11,7 +11,7 @@ export default function AddToCartButton({ product }) {
   const handleAddToCart = () => {
     dispatch({
       type: "ADD_ITEM",
-      payload: { ...product, quantity },
+      payload: { ...product, quantity, selectedVariant },
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);

@@ -58,15 +58,46 @@ function parsePrice(value) {
 function normalizeImage(value) {
   if (Array.isArray(value)) return normalizeImage(value[0]);
   if (value && typeof value === "object") {
-    return firstValue(value.path, value.url, value.src, value.file_name, value.image) || null;
+    return normalizeImage(firstValue(value.path, value.url, value.src, value.file_name, value.image));
   }
   if (!value || typeof value !== "string") return null;
-  if (/^(https?:)?\/\//i.test(value) || value.startsWith("data:")) return value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("data:")) return trimmed;
+
+  const hostPattern = /^localhost[_:](\d+)[_/](.+)$/i;
+  const schemePattern = /^(https?)_+(.+)$/i;
+
+  if (hostPattern.test(trimmed)) {
+    const [, port, rest] = trimmed.match(hostPattern);
+    return `http://localhost:${port}/${rest.replace(/^_+/, "").replace(/_/g, "/")}`;
+  }
+
+  if (schemePattern.test(trimmed)) {
+    const [, scheme, rest] = trimmed.match(schemePattern);
+    const fixed = rest.replace(/^_+/, "");
+    const hostFix = fixed.replace(/^localhost[_:](\d+)_/, "localhost:$1/");
+    return `${scheme}://${hostFix.replace(/_/g, "/")}`;
+  }
+
+  if (trimmed.startsWith("localhost:")) {
+    return `http://${trimmed}`;
+  }
 
   const origin = getApiOrigin();
-  if (!origin) return value;
-  const cleanPath = value.replace(/^\/+/, "");
+  if (!origin) return trimmed;
+  const cleanPath = trimmed.replace(/^\/+/, "");
   return `${origin}/${cleanPath}`;
+}
+
+function normalizeImageList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => normalizeImageList(item)).filter(Boolean);
+  }
+  const image = normalizeImage(value);
+  return image ? [image] : [];
 }
 
 function normalizeCategory(category) {
@@ -176,6 +207,7 @@ function normalizeProduct(product) {
     ""
   );
 
+  const imageList = normalizeImageList(product.images || product.photos || product.image || product.thumbnail_image || product.featured_image);
   return {
     ...product,
     id: product.id,
@@ -185,7 +217,9 @@ function normalizeProduct(product) {
     discount,
     rating: parsePrice(firstValue(product.rating, product.average_rating, product.rating_count, 0)),
     reviews: parsePrice(firstValue(product.reviews, product.review_count, product.reviews_count, 0)),
-    image: normalizeImage(firstValue(product.image, product.thumbnail_image, product.featured_image, product.photos, product.images)),
+    image: normalizeImage(firstValue(product.image, product.thumbnail_image, product.featured_image, imageList[0], product.photos, product.images)),
+    images: imageList,
+    photos: normalizeImageList(product.photos || product.images || product.image),
     category,
     categoryId: firstValue(product.categoryId, product.category_id, product.category?.id, null),
     vendor: firstValue(product.vendor, product.seller_name, product.shop_name, product.shop?.name, ""),
